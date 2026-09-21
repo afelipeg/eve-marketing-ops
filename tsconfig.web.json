@@ -1,0 +1,80 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "#app/*": [
+        "./app/*"
+      ],
+      "#components/*": [
+        "./components/*"
+      ],
+      "#lib/*": [
+        "./lib/*"
+      ],
+      "#hooks/*": [
+        "./hooks/*"
+      ],
+      "#*": [
+        "./agent/*"
+      ],
+      "#evals/*": [
+        "./evals/*"
+      ],
+      "@/*": [
+        "./*"
+      ],
+      "@components/*": [
+        "./components/*"
+      ],
+      "@lib/*": [
+        "./lib/*"
+      ],
+      "@hooks/*": [
+        "./hooks/*"
+      ],
+      "@app/*": [
+        "./app/*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "styles/*.css",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "agent",
+    "evals",
+    "components/layout/AppShell.tsx",
+    "components/layout/RightSidebar.tsx",
+    "components/reui/cascader/**/*",
+    "components/reui/data-grid/**/*",
+    "components/reui/filters/**/*",
+    "components/reui/tree.tsx"
+  ]
+}
