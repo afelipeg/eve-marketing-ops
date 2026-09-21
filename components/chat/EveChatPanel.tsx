@@ -8,6 +8,10 @@ import {
   type EveMessage,
   type EveMessageInputRequest,
 } from "eve/react"
+import {
+  Client,
+  type SessionSnapshot,
+} from "eve/client"
 
 import { EveActivityDock } from "@/components/chat/EveActivityDock"
 import { AppHeader } from "@/components/blocks/app-shell-10/components/app-header"
@@ -40,13 +44,79 @@ const ROOT_MODEL: ModelRecord = {
   recommended: true,
 }
 
-export function EveChatPanel({
-  initialView = "chat",
-  sessionId,
-}: {
+type EveChatPanelProps = {
   initialView?: WorkspaceView
   sessionId?: string
-}) {
+}
+
+export function EveChatPanel(props: EveChatPanelProps) {
+  if (!props.sessionId) return <EveChatWorkspace {...props} />
+  return <HydratedEveChatWorkspace {...props} sessionId={props.sessionId} />
+}
+
+function HydratedEveChatWorkspace({
+  initialView = "chat",
+  sessionId,
+}: EveChatPanelProps & { sessionId: string }) {
+  const [snapshot, setSnapshot] = React.useState<SessionSnapshot | null>(null)
+  const [loadError, setLoadError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    let current = true
+    const client = new Client({ host: "" })
+
+    client.sessions
+      .attach(sessionId)
+      .snapshot()
+      .then((next) => {
+        if (current) setSnapshot(next)
+      })
+      .catch((error: unknown) => {
+        if (!current) return
+        setLoadError(error instanceof Error ? error.message : "Unable to restore this EVE session.")
+      })
+
+    return () => {
+      current = false
+    }
+  }, [sessionId])
+
+  if (loadError) {
+    return (
+      <main className="grid min-h-svh place-items-center bg-background p-6">
+        <div className="max-w-md space-y-3 text-center">
+          <h1 className="text-lg font-semibold">Unable to restore this session</h1>
+          <p className="text-sm text-muted-foreground">{loadError}</p>
+          <Button onClick={() => window.location.reload()} type="button" variant="outline">
+            Reload
+          </Button>
+        </div>
+      </main>
+    )
+  }
+
+  if (!snapshot) {
+    return (
+      <main className="grid min-h-svh place-items-center bg-background p-6">
+        <p className="text-sm text-muted-foreground">Restoring EVE session…</p>
+      </main>
+    )
+  }
+
+  return (
+    <EveChatWorkspace
+      initialView={initialView}
+      sessionId={sessionId}
+      snapshot={snapshot}
+    />
+  )
+}
+
+function EveChatWorkspace({
+  initialView = "chat",
+  sessionId,
+  snapshot,
+}: EveChatPanelProps & { snapshot?: SessionSnapshot }) {
   const router = useRouter()
   const routedSessionId = React.useRef(sessionId)
   const timestamps = React.useRef(new Map<string, string>())
@@ -58,7 +128,8 @@ export function EveChatPanel({
   const [stopped, setStopped] = React.useState(false)
 
   const agent = useEveAgent({
-    initialSession: sessionId ? { sessionId, streamIndex: 0 } : undefined,
+    initialEvents: snapshot?.events,
+    initialSession: snapshot?.session ?? (sessionId ? { sessionId, streamIndex: 0 } : undefined),
     onError(error) {
       console.error("EVE session error", error.stack ?? error.message)
     },
