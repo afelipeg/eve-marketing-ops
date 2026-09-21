@@ -61,10 +61,10 @@ export function EveChatPanel({
     initialSession: sessionId ? { sessionId, streamIndex: 0 } : undefined,
     onSessionChange(session) {
       const nextSessionId = session?.sessionId
-      setCurrentSessionId(nextSessionId)
       if (nextSessionId === routedSessionId.current) return
 
       routedSessionId.current = nextSessionId
+      setCurrentSessionId(nextSessionId)
       router.replace(nextSessionId ? `/chat/${encodeURIComponent(nextSessionId)}` : "/chat")
     },
     resume: sessionId !== undefined,
