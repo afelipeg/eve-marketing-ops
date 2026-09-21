@@ -126,6 +126,8 @@ function EveChatWorkspace({
   )
   const [rightOpen, setRightOpen] = React.useState(true)
   const [stopped, setStopped] = React.useState(false)
+  const [stopping, setStopping] = React.useState(false)
+  const [stopError, setStopError] = React.useState<string | null>(null)
 
   const agent = useEveAgent({
     initialEvents: snapshot?.events,
@@ -231,6 +233,28 @@ function EveChatWorkspace({
     await agent.send(`Revise the denied action before trying again: ${note}`)
   }
 
+  async function stopRun() {
+    if (stopping) return
+
+    setStopped(true)
+    setStopping(true)
+    setStopError(null)
+    try {
+      if (currentSessionId) {
+        const client = new Client({ host: "" })
+        await client.sessions.attach(currentSessionId).cancel({ tasks: true })
+      } else {
+        await agent.cancel()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to stop this EVE run."
+      setStopError(message)
+      console.error("EVE run cancellation failed", error)
+    } finally {
+      setStopping(false)
+    }
+  }
+
   return (
     <TooltipProvider delayDuration={0}>
       <SidebarProvider
@@ -274,6 +298,9 @@ function EveChatWorkspace({
                       messages={agent.data.messages}
                       onRespond={(response) => agent.respond([response])}
                       onRevise={revise}
+                      onStop={stopRun}
+                      stopError={stopError}
+                      stopping={stopping}
                     />
                   )}
                   activityLabel="Coordinating the marketing workflow"
@@ -294,16 +321,13 @@ function EveChatWorkspace({
 
                 <div className="shrink-0 border-t bg-background px-4 py-3 sm:px-6">
                   <Composer
-                    disabled={isResuming}
+                    disabled={isResuming || stopping}
                     model={ROOT_MODEL}
                     onSend={(text) => {
                       setStopped(false)
                       agent.send(text, isBusy ? { turnPolicy: "steer" } : undefined)
                     }}
-                    onStop={() => {
-                      setStopped(true)
-                      agent.cancel()
-                    }}
+                    onStop={() => void stopRun()}
                     streaming={isBusy}
                   />
                 </div>

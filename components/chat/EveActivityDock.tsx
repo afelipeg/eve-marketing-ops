@@ -24,12 +24,18 @@ export function EveActivityDock({
   messages,
   onRespond,
   onRevise,
+  onStop,
+  stopError,
+  stopping = false,
 }: {
   busy: boolean
   interactionDisabled?: boolean
   messages: readonly EveMessage[]
   onRespond: (response: { optionId?: string; requestId: string; text?: string }) => Promise<void>
   onRevise: (request: PendingRequest, note: string) => Promise<void>
+  onStop: () => Promise<void>
+  stopError?: string | null
+  stopping?: boolean
 }) {
   const currentTurn = currentTurnMessages(messages)
   const toolParts = currentTurn.flatMap((message) =>
@@ -38,10 +44,33 @@ export function EveActivityDock({
   const items = toActivityItems(currentTurn)
   const pending = collectPendingRequests(currentTurn)
 
-  if (items.length === 0 && pending.length === 0) return null
+  if (!busy && items.length === 0 && pending.length === 0 && !stopError) return null
 
   return (
     <div className="w-full space-y-3">
+      {busy ? (
+        <div className="flex items-center justify-between gap-3">
+          <p aria-live="polite" className="text-xs text-muted-foreground" role="status">
+            {stopping ? "Stopping the run and its background tasks…" : "Run in progress · background tasks included"}
+          </p>
+          <Button
+            disabled={interactionDisabled || stopping}
+            onClick={() => void onStop()}
+            size="sm"
+            type="button"
+            variant="destructive"
+          >
+            {stopping ? "Stopping…" : "Stop run"}
+          </Button>
+        </div>
+      ) : null}
+
+      {stopError ? (
+        <p aria-live="assertive" className="text-xs text-destructive" role="alert">
+          {stopError}
+        </p>
+      ) : null}
+
       {items.length > 0 ? (
         <AgentActivity
           activeLabel="EVE is working through the run…"
