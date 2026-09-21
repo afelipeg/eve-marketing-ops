@@ -279,17 +279,29 @@ function isTerminal(state: EveDynamicToolPart["state"]) {
 }
 
 function formatToolPayload(part: EveDynamicToolPart) {
-  if (part.state === "output-error") return part.errorText
-  if (part.state === "output-denied") return part.approval.reason ?? "Denied by operator"
-  if (part.state === "output-available") return stringify(part.output)
-  return stringify(part.input)
+  if (part.state === "output-error") {
+    return nonEmptyText(part.errorText, "The tool failed without an error payload.")
+  }
+  if (part.state === "output-denied") {
+    return nonEmptyText(part.approval?.reason, "Denied by operator")
+  }
+  if (part.state === "output-available") {
+    return stringify(part.output, "The tool completed without an output payload.")
+  }
+  return stringify(part.input, "Waiting for tool input.")
 }
 
-function stringify(value: unknown) {
+function nonEmptyText(value: unknown, fallback: string) {
+  return typeof value === "string" && value.trim().length > 0 ? value : fallback
+}
+
+function stringify(value: unknown, fallback: string) {
   if (typeof value === "string") return value
   try {
-    return JSON.stringify(value, null, 2)
+    const serialized = JSON.stringify(value, null, 2)
+    return typeof serialized === "string" ? serialized : fallback
   } catch {
-    return String(value)
+    const coerced = String(value)
+    return coerced === "undefined" ? fallback : coerced
   }
 }

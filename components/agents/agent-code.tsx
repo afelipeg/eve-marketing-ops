@@ -143,8 +143,11 @@ export function AgentCode({
   language = "bash",
   className,
 }: AgentCodeProps) {
-  const tokens = useAgentCodeTokens(code, language);
-  const lines = code.split("\n").reduce<
+  // Durable sessions can replay events created by an older tool contract.
+  // Keep malformed optional payloads from taking down the entire workspace.
+  const source = typeof code === "string" ? code : "";
+  const tokens = useAgentCodeTokens(source, language);
+  const lines = source.split("\n").reduce<
     Array<{ content: string; offset: number }>
   >((result, content) => {
     const previous = result.at(-1);
