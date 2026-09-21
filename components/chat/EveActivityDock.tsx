@@ -31,21 +31,23 @@ export function EveActivityDock({
   onRespond: (response: { optionId?: string; requestId: string; text?: string }) => Promise<void>
   onRevise: (request: PendingRequest, note: string) => Promise<void>
 }) {
-  const toolParts = messages.flatMap((message) =>
+  const currentTurn = currentTurnMessages(messages)
+  const toolParts = currentTurn.flatMap((message) =>
     message.parts.filter((part) => part.type === "dynamic-tool"),
   )
-  const items = toActivityItems(messages)
-  const pending = collectPendingRequests(messages)
+  const items = toActivityItems(currentTurn)
+  const pending = collectPendingRequests(currentTurn)
 
   if (items.length === 0 && pending.length === 0) return null
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-3 px-4 pb-3 sm:px-6">
+    <div className="w-full space-y-3">
       {items.length > 0 ? (
         <AgentActivity
           activeLabel="EVE is working through the run…"
           defaultOpen
-          items={items.slice(-10)}
+          items={items.slice(-12)}
+          maxHeight={1200}
           status={busy ? "working" : "complete"}
           summary={`Completed ${items.length} activity ${items.length === 1 ? "step" : "steps"}`}
         />
@@ -79,6 +81,11 @@ export function EveActivityDock({
       ))}
     </div>
   )
+}
+
+function currentTurnMessages(messages: readonly EveMessage[]) {
+  const lastUserIndex = messages.findLastIndex((message) => message.role === "user")
+  return lastUserIndex >= 0 ? messages.slice(lastUserIndex + 1) : messages
 }
 
 function ApprovalConsole({

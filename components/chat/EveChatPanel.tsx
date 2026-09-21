@@ -267,6 +267,15 @@ function EveChatWorkspace({
             {initialView === "chat" ? (
               <section aria-label="EVE agent chat" className="flex min-w-0 flex-1 flex-col">
                 <ChatThread
+                  activity={(
+                    <EveActivityDock
+                      busy={isBusy}
+                      interactionDisabled={isResuming}
+                      messages={agent.data.messages}
+                      onRespond={(response) => agent.respond([response])}
+                      onRevise={revise}
+                    />
+                  )}
                   activityLabel="Coordinating the marketing workflow"
                   arrivingId={arrivingId}
                   onArrived={() => undefined}
@@ -282,16 +291,6 @@ function EveChatWorkspace({
                   title="Marketing Ops Orchestrator"
                   transcript={transcript}
                 />
-
-                <div className="max-h-[42vh] shrink-0 overflow-y-auto border-t bg-background/95">
-                  <EveActivityDock
-                    busy={isBusy}
-                    interactionDisabled={isResuming}
-                    messages={agent.data.messages}
-                    onRespond={(response) => agent.respond([response])}
-                    onRevise={revise}
-                  />
-                </div>
 
                 <div className="shrink-0 border-t bg-background px-4 py-3 sm:px-6">
                   <Composer

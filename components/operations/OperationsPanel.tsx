@@ -32,6 +32,13 @@ export function OperationsPanel({
     /valid|jev|measure/i.test(part.toolName),
   )
   const runtimeStatus = toRuntimeStatus(status)
+  const budgetChart = budgetAllocationChart(toolParts)
+  const jevChart = jevDecisionChart(toolParts)
+  const decisionChartIds = [
+    ...(budgetChart ? ["budget-allocation-chart"] : []),
+    ...(jevChart ? ["jev-decision-chart"] : []),
+    "activity-chart",
+  ]
 
   const validationChildren = validationParts.length
     ? validationParts.slice(-4).map((part, index) => {
@@ -100,7 +107,47 @@ export function OperationsPanel({
       "operations-root": {
         type: "Stack",
         props: { gap: "md" },
-        children: ["runtime-section", "validation-section", "tool-section", "activity-section"],
+        children: ["decision-section", "runtime-section", "validation-section", "tool-section"],
+      },
+      "decision-section": {
+        type: "Section",
+        props: {
+          description: "Verified EVE outputs rendered through the JSON Render catalog",
+          title: "Decision visuals · JSON Render",
+        },
+        children: decisionChartIds,
+      },
+      ...(budgetChart
+        ? {
+            "budget-allocation-chart": {
+              type: "BarChart",
+              props: budgetChart,
+              children: [],
+            },
+          }
+        : {}),
+      ...(jevChart
+        ? {
+            "jev-decision-chart": {
+              type: "BarChart",
+              props: jevChart,
+              children: [],
+            },
+          }
+        : {}),
+      "activity-chart": {
+        type: "BarChart",
+        props: {
+          format: "number",
+          title: "Live event mix",
+          series: [
+            { label: "Events", value: eventTypes.length },
+            { label: "Messages", value: messages.length },
+            { label: "Tools", value: toolParts.length },
+            { label: "Reasoning", value: reasoningCount },
+          ],
+        },
+        children: [],
       },
       "runtime-section": {
         type: "Section",
@@ -208,27 +255,6 @@ export function OperationsPanel({
         children: toolIds,
       },
       ...Object.fromEntries(toolChildren),
-      "activity-section": {
-        type: "Section",
-        props: {
-          description: "Counts from the current browser projection",
-          title: "Session activity",
-        },
-        children: ["activity-chart"],
-      },
-      "activity-chart": {
-        type: "BarChart",
-        props: {
-          title: "Live event mix",
-          series: [
-            { label: "Events", value: eventTypes.length },
-            { label: "Messages", value: messages.length },
-            { label: "Tools", value: toolParts.length },
-            { label: "Reasoning", value: reasoningCount },
-          ],
-        },
-        children: [],
-      },
     },
   }
 
@@ -237,7 +263,7 @@ export function OperationsPanel({
       <div className="flex h-12 shrink-0 items-center justify-between border-b px-3">
         <div>
           <p className="text-sm font-semibold">EVE control plane</p>
-          <p className="text-xs text-muted-foreground">Live prototype telemetry</p>
+          <p className="text-xs text-muted-foreground">JSON-rendered live telemetry</p>
         </div>
         <Button aria-label="Close operations panel" onClick={onClose} size="icon-sm" type="button" variant="ghost">
           <PanelRightClose aria-hidden="true" />
@@ -252,6 +278,73 @@ export function OperationsPanel({
       </ScrollArea>
     </aside>
   )
+}
+
+function budgetAllocationChart(parts: EveDynamicToolPart[]) {
+  const output = latestToolOutput(parts, /^allocate_budget$/)
+  if (!isRecord(output) || !isRecord(output.plan)) return null
+
+  const currency = typeof output.plan.currency === "string"
+    ? output.plan.currency.toUpperCase()
+    : "USD"
+  const lines = Array.isArray(output.plan.lines) ? output.plan.lines : []
+  const series = lines.flatMap((line) => {
+    if (!isRecord(line) || typeof line.service !== "string" || typeof line.amount !== "number") {
+      return []
+    }
+    return [{ label: titleCase(line.service), value: Math.max(0, line.amount) }]
+  })
+  if (typeof output.plan.measurementReserve === "number") {
+    series.push({ label: "Measurement", value: Math.max(0, output.plan.measurementReserve) })
+  }
+  if (series.length === 0) return null
+
+  return {
+    currency,
+    format: "currency" as const,
+    series: series.slice(0, 8),
+    title: `Budget allocation · ${currency}`,
+  }
+}
+
+function jevDecisionChart(parts: EveDynamicToolPart[]) {
+  const output = latestToolOutput(parts, /^validate_result$/)
+  if (!isRecord(output)) return null
+
+  const series: Array<{ label: string; value: number }> = []
+  if (typeof output.confidence === "number") {
+    series.push({ label: "Confidence", value: clamp01(output.confidence) })
+  }
+  if (isRecord(output.jevReview) && typeof output.jevReview.supportProbability === "number") {
+    series.push({ label: "JEV support", value: clamp01(output.jevReview.supportProbability) })
+  }
+  if (series.length === 0) return null
+
+  const directive = typeof output.directive === "string" ? ` · ${output.directive}` : ""
+  return {
+    format: "percent" as const,
+    series,
+    title: `Validation confidence${directive}`,
+  }
+}
+
+function latestToolOutput(parts: EveDynamicToolPart[], name: RegExp) {
+  const latest = parts
+    .filter((part) => name.test(part.toolName) && part.state === "output-available")
+    .at(-1)
+  return latest?.state === "output-available" ? latest.output : null
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function titleCase(value: string) {
+  return value.replace(/[_-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function clamp01(value: number) {
+  return Math.min(1, Math.max(0, value))
 }
 
 function strictOutputContract(toolName: string) {

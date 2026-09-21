@@ -123,7 +123,9 @@ export const { registry: operationsRegistry } = defineRegistry(operationsCatalog
                   style={{ width: `${Math.max(4, (item.value / max) * 100)}%` }}
                 />
               </div>
-              <span className="text-right text-xs tabular-nums">{item.value}</span>
+              <span className="text-right text-xs tabular-nums">
+                {formatChartValue(item.value, props.format, props.currency)}
+              </span>
             </div>
           ))}
         </figure>
@@ -131,3 +133,29 @@ export const { registry: operationsRegistry } = defineRegistry(operationsCatalog
     },
   },
 })
+
+function formatChartValue(
+  value: number,
+  format: "number" | "currency" | "percent",
+  currency?: string,
+) {
+  if (format === "percent") {
+    return new Intl.NumberFormat(undefined, {
+      maximumFractionDigits: 0,
+      style: "percent",
+    }).format(value)
+  }
+  if (format === "currency" && currency) {
+    return new Intl.NumberFormat(undefined, {
+      compactDisplay: "short",
+      currency,
+      maximumFractionDigits: 1,
+      notation: "compact",
+      style: "currency",
+    }).format(value)
+  }
+  return new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 1,
+    notation: value >= 1_000 ? "compact" : "standard",
+  }).format(value)
+}

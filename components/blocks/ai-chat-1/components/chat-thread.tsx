@@ -879,6 +879,7 @@ export function ChatThread({
   arrivingId,
   stoppedIds,
   threads,
+  activity,
   activityLabel,
   onStart,
   onSelectThread,
@@ -893,6 +894,8 @@ export function ChatThread({
   stoppedIds: string[]
   /** Offered as shortcuts on the starter view, newest and pinned first. */
   threads: ThreadRecord[]
+  /** EVE reasoning, tools, results, and approvals rendered after the reply. */
+  activity?: ReactNode
   /** Step shown while a live send waits, a real step from the storyline. */
   activityLabel: string
   onStart: (text: string) => void
@@ -1041,6 +1044,15 @@ export function ChatThread({
                     {activityLabel}
                   </MarkerContent>
                 </Marker>
+              </MessageScrollerItem>
+            ) : null}
+
+            {activity ? (
+              <MessageScrollerItem
+                scrollAnchor={false}
+                className="[content-visibility:visible]"
+              >
+                {activity}
               </MessageScrollerItem>
             ) : null}
           </MessageScrollerContent>

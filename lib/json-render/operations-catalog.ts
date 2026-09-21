@@ -56,6 +56,8 @@ export const operationsCatalog = defineCatalog(schema, {
     BarChart: {
       props: z
         .object({
+          currency: z.string().length(3).optional(),
+          format: z.enum(["number", "currency", "percent"]).default("number"),
           series: z
             .array(
               z
@@ -69,7 +71,7 @@ export const operationsCatalog = defineCatalog(schema, {
           title: z.string(),
         })
         .strict(),
-      description: "Compact horizontal bar chart for session activity counts.",
+      description: "Compact horizontal bar chart for verified operational or decision metrics.",
     },
   },
   actions: {},
