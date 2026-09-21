@@ -59,6 +59,9 @@ export function EveChatPanel({
 
   const agent = useEveAgent({
     initialSession: sessionId ? { sessionId, streamIndex: 0 } : undefined,
+    onError(error) {
+      console.error("EVE session error", error.stack ?? error.message)
+    },
     onSessionChange(session) {
       const nextSessionId = session?.sessionId
       if (nextSessionId === routedSessionId.current) return
