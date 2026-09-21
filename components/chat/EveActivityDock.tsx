@@ -43,15 +43,20 @@ export function EveActivityDock({
   )
   const items = toActivityItems(currentTurn)
   const pending = collectPendingRequests(currentTurn)
+  const canStop = busy || pending.length > 0 || toolParts.some((part) => !isTerminal(part.state))
 
-  if (!busy && items.length === 0 && pending.length === 0 && !stopError) return null
+  if (!canStop && items.length === 0 && !stopError) return null
 
   return (
     <div className="w-full space-y-3">
-      {busy ? (
+      {canStop ? (
         <div className="flex items-center justify-between gap-3">
           <p aria-live="polite" className="text-xs text-muted-foreground" role="status">
-            {stopping ? "Stopping the run and its background tasks…" : "Run in progress · background tasks included"}
+            {stopping
+              ? "Stopping the run and its background tasks…"
+              : busy
+                ? "Run in progress · background tasks included"
+                : "Pending work remains · approvals and background tasks included"}
           </p>
           <Button
             disabled={interactionDisabled || stopping}
